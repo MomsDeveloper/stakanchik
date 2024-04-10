@@ -6,24 +6,18 @@ from aiogram.filters.callback_data import CallbackData
 from aiogram.types import Message
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from aiogram.types import CallbackQuery
+from deta import Base
 
 router = Router()
+database = Base("cocktails")
+
 menu = [[InlineKeyboardButton(text="💳 Алкогольные напитки", callback_data="get_alco"),
     InlineKeyboardButton(text="💰 Безалкогольные напитки", callback_data="get_bezalco")],
 [InlineKeyboardButton(text="О нас", callback_data="about")], 
 [InlineKeyboardButton(text="🔎 Помощь", callback_data="help")]]
 menu_markup = InlineKeyboardMarkup(inline_keyboard=menu)
 
-cocktail_recipes = {
-    "get_alco": [
-        {"name": "Mojito", "recipe": "Muddle mint leaves, lime wedges, and simple syrup in a glass. Fill the glass with ice, add white rum, and top with soda water. Stir well and garnish with mint leaves and a lime wedge."},
-        {"name": "Cosmopolitan", "recipe": "Shake vodka, triple sec, cranberry juice, and lime juice with ice. Strain into a martini glass and garnish with a lime wheel."},
-    ],
-    "get_bezalco": [
-        {"name": "Virgin Mojito", "recipe": "Muddle mint leaves, lime wedges, and simple syrup in a glass. Fill the glass with ice and top with soda water. Stir well and garnish with mint leaves and a lime wedge."},
-        {"name": "Mocktail", "recipe": "Shake pineapple juice, orange juice, and grenadine with ice. Strain into a glass filled with ice and garnish with a cherry and an orange slice."},
-    ]
-}
+cocktail_recipes = database.fetch().items
     
 @router.message(CommandStart())
 async def start(message: Message):
@@ -51,14 +45,16 @@ class HelpCallback(CallbackData, prefix="help"):
 @router.callback_query(GetAlcoCallback.filter())
 async def get_alco(call: CallbackQuery):
     await call.message.answer("Алкогольные напитки")
-    for cocktail in cocktail_recipes["get_alco"]:
-        await call.message.answer(f"{cocktail['name']}\n{cocktail['recipe']}")
+    for cocktail in cocktail_recipes:
+        if cocktail["type"] == "Алкогольный":
+            await call.message.answer(f"{cocktail['name']}\n{cocktail['recipe']}")
         
 @router.callback_query(GetBezalcoCallback.filter())
 async def get_bezalco(call: CallbackQuery):
     await call.message.answer("Безалкогольные напитки")
-    for cocktail in cocktail_recipes["get_bezalco"]:
-        await call.message.answer(f"{cocktail['name']}\n{cocktail['recipe']}")
+    for cocktail in cocktail_recipes:
+        if cocktail["type"] == "Безалкогольный":
+            await call.message.answer(f"{cocktail['name']}\n{cocktail['recipe']}")
 
 @router.callback_query(AboutCallback.filter())
 async def about(call: CallbackQuery):
